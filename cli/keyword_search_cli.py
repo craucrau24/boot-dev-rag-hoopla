@@ -23,10 +23,21 @@ def main() -> None:
         case "search":
             print(f"Searching for: {args.query}")
         
-            table = str.maketrans("", "", string.punctuation)
-            xform = lambda s: s.lower().translate(table)
+            
+            def tokenize(s: str):
+                table = str.maketrans("", "", string.punctuation)
+                new_s = s.lower().translate(table)
+                return new_s.split()
+
+            def check(query, title):
+                query = tokenize(query)
+                title = tokenize(title)
+
+                return any(map(lambda tp: tp[0] in tp[1], itertools.product(query, title)))
+
+
             result = itertools.islice(
-                filter(lambda mov: xform(args.query) in xform(mov["title"]), movies["movies"]),
+                filter(lambda mov: check(args.query, mov["title"]), movies["movies"]),
                 5
             )
 
