@@ -4,6 +4,7 @@ import argparse
 import os
 import json
 import itertools
+import string
 
 
 def main() -> None:
@@ -22,8 +23,10 @@ def main() -> None:
         case "search":
             print(f"Searching for: {args.query}")
         
+            table = str.maketrans("", "", string.punctuation)
+            xform = lambda s: s.lower().translate(table)
             result = itertools.islice(
-                filter(lambda mov: args.query in mov["title"], movies["movies"]),
+                filter(lambda mov: xform(args.query) in xform(mov["title"]), movies["movies"]),
                 5
             )
 
