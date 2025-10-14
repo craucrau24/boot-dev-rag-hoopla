@@ -19,6 +19,10 @@ def main() -> None:
     with open(os.path.join("data", "movies.json")) as mov:
         movies = json.load(mov)
 
+    with open(os.path.join("data", "stopwords.txt")) as stop:
+        stopwords = set(stop.read().splitlines())
+
+
     match args.command:
         case "search":
             print(f"Searching for: {args.query}")
@@ -27,7 +31,7 @@ def main() -> None:
             def tokenize(s: str):
                 table = str.maketrans("", "", string.punctuation)
                 new_s = s.lower().translate(table)
-                return new_s.split()
+                return list(filter(lambda word: word not in stopwords, new_s.split()))
 
             def check(query, title):
                 query = tokenize(query)
