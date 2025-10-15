@@ -6,6 +6,7 @@ import json
 import itertools
 import string
 
+from nltk.stem import PorterStemmer
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Keyword Search CLI")
@@ -26,12 +27,16 @@ def main() -> None:
     match args.command:
         case "search":
             print(f"Searching for: {args.query}")
-        
+
+            stemmer = PorterStemmer()
             
             def tokenize(s: str):
                 table = str.maketrans("", "", string.punctuation)
                 new_s = s.lower().translate(table)
-                return list(filter(lambda word: word not in stopwords, new_s.split()))
+                return list(
+                       map(lambda tok: stemmer.stem(tok),
+                           filter( lambda word: word not in stopwords, new_s.split())
+                        ))
 
             def check(query, title):
                 query = tokenize(query)
