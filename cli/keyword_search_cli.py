@@ -6,8 +6,6 @@ import json
 import itertools
 import string
 
-from nltk.stem import PorterStemmer
-
 from data.utils import Tokenizer
 from data.inverted_index import InvertedIndex
 
@@ -31,8 +29,6 @@ def main() -> None:
         case "search":
             print(f"Searching for: {args.query}")
 
-            stemmer = PorterStemmer()
-            
             def check(query, title):
                 query = tokenizer.tokenize_str(query)
                 title = tokenizer.tokenize_str(title)
