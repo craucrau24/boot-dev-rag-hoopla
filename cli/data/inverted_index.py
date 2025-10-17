@@ -15,7 +15,8 @@ class InvertedIndex:
       self.index.setdefault(tok, set()).add(doc_id)
 
   def get_documents(self, term):
-    docs = sorted(map(lambda id: self.docmap[id], self.index[term]), key=lambda elt: elt["id"])
+    print(term)
+    docs = sorted(map(lambda id: self.docmap[id], self.index.get(term, set())), key=lambda elt: elt["id"])
     return docs
 
   def build(self, movies):
@@ -32,3 +33,11 @@ class InvertedIndex:
 
     with open(os.path.join("cache", "docmap.pkl"), "bw") as f:
       pickle.dump(self.docmap, f)
+
+  
+  def load(self):
+    with open(os.path.join("cache", "index.pkl"), "br") as f:
+      self.index = pickle.load(f)
+
+    with open(os.path.join("cache", "docmap.pkl"), "br") as f:
+      self.docmap = pickle.load(f)

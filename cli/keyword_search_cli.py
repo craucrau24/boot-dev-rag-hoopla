@@ -4,7 +4,8 @@ import argparse
 import os
 import json
 import itertools
-import string
+import sys
+
 
 from data.utils import Tokenizer
 from data.inverted_index import InvertedIndex
@@ -27,19 +28,26 @@ def main() -> None:
 
     match args.command:
         case "search":
+            index = InvertedIndex(tokenizer)
+            try:
+                index.load()
+            except IOError as e:
+                print(f"Error while loading index files: {e}")
+                sys.exit(1)
+
             print(f"Searching for: {args.query}")
 
-            def check(query, title):
-                query = tokenizer.tokenize_str(query)
-                title = tokenizer.tokenize_str(title)
 
-                return any(map(lambda tp: tp[0] in tp[1], itertools.product(query, title)))
+            curr = set()
+            result = []
+            for tok in tokenizer.tokenize_str(args.query):
+                docs = index.get_documents(tok)
+                result.extend(filter(lambda doc: doc["id"] not in curr, docs))
+                if len(result) > 5:
+                    result = result[:5]
+                    break
 
-
-            result = itertools.islice(
-                filter(lambda mov: check(args.query, mov["title"]), movies["movies"]),
-                5
-            )
+                curr.update(map(lambda doc: doc["id"], docs))
 
             for i, mov in enumerate(result):
                 print(f"{i + 1}. {mov["title"]}")
@@ -48,9 +56,6 @@ def main() -> None:
             index = InvertedIndex(tokenizer)
             index.build(movies["movies"])
             index.save()
-
-            docs = index.get_documents("merida")
-            print(f"First document for token 'merida' = {docs[0]}")
 
         case _:
             parser.print_help()
