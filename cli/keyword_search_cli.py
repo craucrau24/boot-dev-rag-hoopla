@@ -3,7 +3,7 @@
 import argparse
 import os
 import json
-import itertools
+import math
 import sys
 
 
@@ -17,6 +17,13 @@ def main() -> None:
     subparsers.add_parser("build", help="Build index")
     search_parser = subparsers.add_parser("search", help="Search movies using BM25")
     search_parser.add_argument("query", type=str, help="Search query")
+
+    term_freq_parser = subparsers.add_parser("tf", help="get term frequency for give document id and term")
+    term_freq_parser.add_argument("doc_id", type=int, help="Document id")
+    term_freq_parser.add_argument("term", type=str, help="Term to search")
+
+    inv_doc_freq_parser = subparsers.add_parser("idf", help="get inverse document frequency for given term")
+    inv_doc_freq_parser.add_argument("term", type=str, help="Term to search")
 
     args = parser.parse_args()
 
@@ -51,6 +58,32 @@ def main() -> None:
 
             for i, mov in enumerate(result):
                 print(f"{i + 1}. {mov["title"]}")
+
+        case "tf":
+            index = InvertedIndex(tokenizer)
+            try:
+                index.load()
+            except IOError as e:
+                print(f"Error while loading index files: {e}")
+                sys.exit(1)
+
+            print(f"Retrieve term frequency for '{args.term}' in document {args.doc_id}")
+            print(f"Count: {index.get_tf(args.doc_id, args.term)}")
+
+        case "idf":
+            index = InvertedIndex(tokenizer)
+            try:
+                index.load()
+            except IOError as e:
+                print(f"Error while loading index files: {e}")
+                sys.exit(1)
+
+            term = tokenizer.tokenize_word(args.term)
+            term_doc_count = len(index.get_documents(term))
+            idf = math.log((len(index.docmap) + 1) / (term_doc_count + 1))
+            print(idf)
+
+            print(f"Inverse document frequency of '{term}': {idf:.2f}")
 
         case "build":
             index = InvertedIndex(tokenizer)
