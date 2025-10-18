@@ -39,6 +39,9 @@ def main() -> None:
     inv_doc_freq_parser = subparsers.add_parser("idf", help="get inverse document frequency for given term")
     inv_doc_freq_parser.add_argument("term", type=str, help="Term to search")
 
+    bm25_inv_doc_freq_parser = subparsers.add_parser("bm25idf", help="get inverse document frequency for given term (using BM25 calculation)")
+    bm25_inv_doc_freq_parser.add_argument("term", type=str, help="Term to search")
+
     args = parser.parse_args()
 
     with open(os.path.join("data", "movies.json")) as mov:
@@ -83,6 +86,14 @@ def main() -> None:
             print(idf)
 
             print(f"Inverse document frequency of '{term}': {idf:.2f}")
+
+        case "bm25idf":
+            index = load_index(tokenizer)
+
+            idf = index.get_bm25_idf(args.term)
+            print(idf)
+
+            print(f"Inverse document frequency of '{args.term}': {idf:.2f}")
 
         case "tfidf":
             index = load_index(tokenizer)

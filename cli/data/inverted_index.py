@@ -1,5 +1,7 @@
 import pickle
 import os
+import math
+
 from collections import Counter
 
 class InvertedIndex:
@@ -36,6 +38,15 @@ class InvertedIndex:
       raise Exception(f"document {doc_id} not found")
     return self.term_frequencies[doc_id].get(token, 0)
     
+  def get_bm25_idf(self, term: str) -> float:
+    tokens = self.tokenizer.tokenize_str(term)
+    try:
+      [token] = tokens
+    except:
+      raise Exception("ill-formed query: either empty or more than one word")
+
+    term_doc_count = len(self.get_documents(token))
+    return math.log((len(self.docmap) - term_doc_count + 0.5) / (term_doc_count + 0.5) + 1)
 
   def build(self, movies):
     for mov in movies:
