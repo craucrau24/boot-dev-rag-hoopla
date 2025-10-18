@@ -22,6 +22,10 @@ def main() -> None:
     term_freq_parser.add_argument("doc_id", type=int, help="Document id")
     term_freq_parser.add_argument("term", type=str, help="Term to search")
 
+    tf_idf_parser = subparsers.add_parser("tfidf", help="get term frequency for give document id and term")
+    tf_idf_parser.add_argument("doc_id", type=int, help="Document id")
+    tf_idf_parser.add_argument("term", type=str, help="Term to search")
+
     inv_doc_freq_parser = subparsers.add_parser("idf", help="get inverse document frequency for given term")
     inv_doc_freq_parser.add_argument("term", type=str, help="Term to search")
 
@@ -84,6 +88,23 @@ def main() -> None:
             print(idf)
 
             print(f"Inverse document frequency of '{term}': {idf:.2f}")
+
+        case "tfidf":
+            index = InvertedIndex(tokenizer)
+            try:
+                index.load()
+            except IOError as e:
+                print(f"Error while loading index files: {e}")
+                sys.exit(1)
+
+            term = tokenizer.tokenize_word(args.term)
+            term_doc_count = len(index.get_documents(term))
+            idf = math.log((len(index.docmap) + 1) / (term_doc_count + 1))
+
+            tf = index.get_tf(args.doc_id, term)
+            tf_idf = tf * idf
+            print(tf_idf)
+            print(f"TF-IDF score of '{args.term}' in document '{args.doc_id}': {tf_idf:.2f}")
 
         case "build":
             index = InvertedIndex(tokenizer)
