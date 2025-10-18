@@ -10,6 +10,16 @@ import sys
 from data.utils import Tokenizer
 from data.inverted_index import InvertedIndex
 
+def load_index(tokenizer):
+    index = InvertedIndex(tokenizer)
+    try:
+        index.load()
+        return index
+    except IOError as e:
+        print(f"Error while loading index files: {e}")
+        sys.exit(1)
+    
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Keyword Search CLI")
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
@@ -39,12 +49,7 @@ def main() -> None:
 
     match args.command:
         case "search":
-            index = InvertedIndex(tokenizer)
-            try:
-                index.load()
-            except IOError as e:
-                print(f"Error while loading index files: {e}")
-                sys.exit(1)
+            index = load_index(tokenizer)
 
             print(f"Searching for: {args.query}")
 
@@ -64,23 +69,13 @@ def main() -> None:
                 print(f"{i + 1}. {mov["title"]}")
 
         case "tf":
-            index = InvertedIndex(tokenizer)
-            try:
-                index.load()
-            except IOError as e:
-                print(f"Error while loading index files: {e}")
-                sys.exit(1)
+            index = load_index(tokenizer)
 
             print(f"Retrieve term frequency for '{args.term}' in document {args.doc_id}")
             print(f"Count: {index.get_tf(args.doc_id, args.term)}")
 
         case "idf":
-            index = InvertedIndex(tokenizer)
-            try:
-                index.load()
-            except IOError as e:
-                print(f"Error while loading index files: {e}")
-                sys.exit(1)
+            index = load_index(tokenizer)
 
             term = tokenizer.tokenize_word(args.term)
             term_doc_count = len(index.get_documents(term))
@@ -90,12 +85,7 @@ def main() -> None:
             print(f"Inverse document frequency of '{term}': {idf:.2f}")
 
         case "tfidf":
-            index = InvertedIndex(tokenizer)
-            try:
-                index.load()
-            except IOError as e:
-                print(f"Error while loading index files: {e}")
-                sys.exit(1)
+            index = load_index(tokenizer)
 
             term = tokenizer.tokenize_word(args.term)
             term_doc_count = len(index.get_documents(term))
