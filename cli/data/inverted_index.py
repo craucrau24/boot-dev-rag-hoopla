@@ -4,6 +4,8 @@ import math
 
 from collections import Counter
 
+from data.definitions import BM25_K1
+
 class InvertedIndex:
   def __init__(self, tokenizer):
     self.index = {}
@@ -26,7 +28,7 @@ class InvertedIndex:
     docs = sorted(map(lambda id: self.docmap[id], self.index.get(term, set())), key=lambda elt: elt["id"])
     return docs
 
-  def get_tf(self, doc_id: str, term: str) -> int:
+  def get_tf(self, doc_id: int, term: str) -> int:
     tokens = self.tokenizer.tokenize_str(term)
     
     try:
@@ -36,6 +38,8 @@ class InvertedIndex:
 
     if doc_id not in self.term_frequencies:
       raise Exception(f"document {doc_id} not found")
+    print(self.term_frequencies[doc_id])
+    print(self.docmap[doc_id])
     return self.term_frequencies[doc_id].get(token, 0)
     
   def get_bm25_idf(self, term: str) -> float:
@@ -47,6 +51,11 @@ class InvertedIndex:
 
     term_doc_count = len(self.get_documents(token))
     return math.log((len(self.docmap) - term_doc_count + 0.5) / (term_doc_count + 0.5) + 1)
+
+  def get_bm25_tf(self, doc_id: int, term: str, k1: float = BM25_K1) -> float:
+    tf = self.get_tf(doc_id, term)
+    print(f"tf: {tf} k1: {k1}")
+    return (tf * (k1 + 1)) / (tf + k1)
 
   def build(self, movies):
     for mov in movies:

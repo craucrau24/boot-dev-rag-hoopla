@@ -9,6 +9,7 @@ import sys
 
 from data.utils import Tokenizer
 from data.inverted_index import InvertedIndex
+from data.definitions import BM25_K1
 
 def load_index(tokenizer):
     index = InvertedIndex(tokenizer)
@@ -41,6 +42,13 @@ def main() -> None:
 
     bm25_inv_doc_freq_parser = subparsers.add_parser("bm25idf", help="get inverse document frequency for given term (using BM25 calculation)")
     bm25_inv_doc_freq_parser.add_argument("term", type=str, help="Term to search")
+
+    bm25_tf_parser = subparsers.add_parser(
+        "bm25tf", help="Get BM25 TF score for a given document ID and term"
+    )
+    bm25_tf_parser.add_argument("doc_id", type=int, help="Document ID")
+    bm25_tf_parser.add_argument("term", type=str, help="Term to get BM25 TF score for")
+    bm25_tf_parser.add_argument("k1", type=float, nargs='?', default=BM25_K1, help="Tunable BM25 K1 parameter")
 
     args = parser.parse_args()
 
@@ -94,6 +102,12 @@ def main() -> None:
             print(idf)
 
             print(f"Inverse document frequency of '{args.term}': {idf:.2f}")
+
+        case "bm25tf":
+            index = load_index(tokenizer)
+
+            bm25tf = index.get_bm25_tf(args.doc_id, args.term)
+            print(f"BM25 TF score of '{args.term}' in document '{args.doc_id}': {bm25tf:.2f}")
 
         case "tfidf":
             index = load_index(tokenizer)
