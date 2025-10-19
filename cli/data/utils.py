@@ -20,4 +20,4 @@ class Tokenizer:
       new_s = s.translate(table)
       return list(filter(
          lambda w: w not in self.stopwords,
-         map(self.tokenize_word, new_s.split(" "))))
+         map(self.tokenize_word, new_s.split())))

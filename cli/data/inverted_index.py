@@ -38,8 +38,6 @@ class InvertedIndex:
 
     if doc_id not in self.term_frequencies:
       raise Exception(f"document {doc_id} not found")
-    print(self.term_frequencies[doc_id])
-    print(self.docmap[doc_id])
     return self.term_frequencies[doc_id].get(token, 0)
     
   def get_bm25_idf(self, term: str) -> float:
@@ -54,7 +52,6 @@ class InvertedIndex:
 
   def get_bm25_tf(self, doc_id: int, term: str, k1: float = BM25_K1) -> float:
     tf = self.get_tf(doc_id, term)
-    print(f"tf: {tf} k1: {k1}")
     return (tf * (k1 + 1)) / (tf + k1)
 
   def build(self, movies):
