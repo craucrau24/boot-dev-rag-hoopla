@@ -4,13 +4,14 @@ import math
 
 from collections import Counter
 
-from data.definitions import BM25_K1
+from data.definitions import BM25_K1, BM25_B
 
 class InvertedIndex:
   def __init__(self, tokenizer):
     self.index = {}
     self.docmap = {}
     self.term_frequencies = {}
+    self.doc_lengths = {}
 
     self.tokenizer = tokenizer
 
@@ -23,6 +24,13 @@ class InvertedIndex:
       count[tok] += 1
 
     self.term_frequencies[doc_id] = count
+    self.doc_lengths[doc_id] = len(tokens)
+
+  def __get_avg_doc_length(self) -> float:
+    avg = sum(self.doc_lengths.values())
+    if self.doc_lengths:
+      avg /= len(self.doc_lengths)
+    return avg
 
   def get_documents(self, term):
     docs = sorted(map(lambda id: self.docmap[id], self.index.get(term, set())), key=lambda elt: elt["id"])
@@ -50,9 +58,14 @@ class InvertedIndex:
     term_doc_count = len(self.get_documents(token))
     return math.log((len(self.docmap) - term_doc_count + 0.5) / (term_doc_count + 0.5) + 1)
 
-  def get_bm25_tf(self, doc_id: int, term: str, k1: float = BM25_K1) -> float:
+  def get_bm25_tf(self, doc_id: int, term: str, k1: float = BM25_K1, b: float = BM25_B) -> float:
+    doc_length = self.doc_lengths[doc_id]
+    avg_doc_length = self.__get_avg_doc_length()
+    length_norm = 1 - b + b * (doc_length / avg_doc_length)
+
     tf = self.get_tf(doc_id, term)
-    return (tf * (k1 + 1)) / (tf + k1)
+    result = (tf * (k1 + 1)) / (tf + k1 * length_norm)
+    return result
 
   def build(self, movies):
     for mov in movies:
@@ -72,6 +85,8 @@ class InvertedIndex:
     with open(os.path.join("cache", "term_frequencies.pkl"), "bw") as f:
       pickle.dump(self.term_frequencies, f)
 
+    with open(os.path.join("cache", "doc_lengths.pkl"), "bw") as f:
+      pickle.dump(self.doc_lengths, f)
   
   def load(self):
     with open(os.path.join("cache", "index.pkl"), "br") as f:
@@ -82,3 +97,6 @@ class InvertedIndex:
 
     with open(os.path.join("cache", "term_frequencies.pkl"), "br") as f:
       self.term_frequencies = pickle.load(f)
+
+    with open(os.path.join("cache", "doc_lengths.pkl"), "br") as f:
+      self.doc_lengths = pickle.load(f)
