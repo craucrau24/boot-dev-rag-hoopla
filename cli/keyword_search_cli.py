@@ -51,6 +51,9 @@ def main() -> None:
     bm25_tf_parser.add_argument("k1", type=float, nargs='?', default=BM25_K1, help="Tunable BM25 K1 parameter")
     bm25_tf_parser.add_argument("b", type=float, nargs='?', default=BM25_B, help="Tunable BM25 b parameter")
 
+    bm25search_parser = subparsers.add_parser("bm25search", help="Search movies using full BM25 scoring")
+    bm25search_parser.add_argument("query", type=str, help="Search query")
+
     args = parser.parse_args()
 
     with open(os.path.join("data", "movies.json")) as mov:
@@ -96,6 +99,18 @@ def main() -> None:
 
             print(f"Inverse document frequency of '{term}': {idf:.2f}")
 
+        case "tfidf":
+            index = load_index(tokenizer)
+
+            term = tokenizer.tokenize_word(args.term)
+            term_doc_count = len(index.get_documents(term))
+            idf = math.log((len(index.docmap) + 1) / (term_doc_count + 1))
+
+            tf = index.get_tf(args.doc_id, term)
+            tf_idf = tf * idf
+            print(tf_idf)
+            print(f"TF-IDF score of '{args.term}' in document '{args.doc_id}': {tf_idf:.2f}")
+
         case "bm25idf":
             index = load_index(tokenizer)
 
@@ -110,17 +125,18 @@ def main() -> None:
             bm25tf = index.get_bm25_tf(args.doc_id, args.term, args.k1, args.b)
             print(f"BM25 TF score of '{args.term}' in document '{args.doc_id}': {bm25tf:.2f}-{(bm25tf + 0.01):.2f}")
 
-        case "tfidf":
+        case "bm25search":
+            def get_scores(score):
+                sc_list = [score - 0.01 * i for i in range(10)]
+                return ",".join(map(lambda s: f"{s:.2f}", sc_list))
+
+
             index = load_index(tokenizer)
+            docs = index.bm25_search(args.query, 5)
+            for i, res in enumerate(docs):
+                doc, score = res
+                print(f"{i + 1}. ({doc['id']}) {doc["title"]} - Score: ({get_scores(score)})")
 
-            term = tokenizer.tokenize_word(args.term)
-            term_doc_count = len(index.get_documents(term))
-            idf = math.log((len(index.docmap) + 1) / (term_doc_count + 1))
-
-            tf = index.get_tf(args.doc_id, term)
-            tf_idf = tf * idf
-            print(tf_idf)
-            print(f"TF-IDF score of '{args.term}' in document '{args.doc_id}': {tf_idf:.2f}")
 
         case "build":
             index = InvertedIndex(tokenizer)

@@ -67,6 +67,21 @@ class InvertedIndex:
     result = (tf * (k1 + 1)) / (tf + k1 * length_norm)
     return result
 
+  def bm25(self, doc_id, term):
+    return self.get_bm25_tf(doc_id, term) * self.get_bm25_idf(term)
+
+  def bm25_search(self, query, limit):
+    tokens = self.tokenizer.tokenize_str(query)
+    scores = {}
+    for token in tokens:
+      for id in self.index.get(token, []):
+        scores.setdefault(id, 0)
+        scores[id] += self.bm25(id, token)
+
+    result = sorted(scores.items(), key=lambda t: t[1], reverse=True)
+    return map(lambda t: (self.docmap[t[0]], t[1]),
+               result[:limit])
+
   def build(self, movies):
     for mov in movies:
       self.docmap[mov["id"]] = mov
