@@ -2,13 +2,21 @@
 
 import argparse
 
-def main():
-    parser = argparse.ArgumentParser(description="Semantic Search CLI")
-    args = parser.parse_args()
+from data.semantic_search import SemanticSearch, verify_model
 
-    match args.command:
-        case _:
-            parser.print_help()
+def main():
+  parser = argparse.ArgumentParser(description="Semantic Search CLI")
+  subparsers = parser.add_subparsers(dest="command", help="Available commands")
+  subparsers.add_parser("verify", help="verify model")
+
+  args = parser.parse_args()
+
+  match args.command:
+    case "verify":
+      verify_model()
+
+    case _:
+        parser.print_help()
 
 if __name__ == "__main__":
-    main()
+  main()
