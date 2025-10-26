@@ -2,7 +2,7 @@
 
 import argparse
 
-from data.semantic_search import verify_model, verify_embeddings, embed_text
+from data.semantic_search import verify_model, verify_embeddings, embed_text, search_query
 
 def main():
   parser = argparse.ArgumentParser(description="Semantic Search CLI")
@@ -12,6 +12,10 @@ def main():
 
   embed_text_parser = subparsers.add_parser("embed_text", help="Get embeddings for given text using default model")
   embed_text_parser.add_argument("text", type=str, help="Input text for embeddings retrieval")
+
+  search_parser = subparsers.add_parser("search", help="Get embeddings for given text using default model")
+  search_parser.add_argument("query", type=str, help="The search query")
+  search_parser.add_argument("--limit", type=int, default=5, help="The maximum number of results")
 
   args = parser.parse_args()
 
@@ -24,6 +28,9 @@ def main():
 
     case "embed_text":
       embed_text(args.text)
+
+    case "search":
+      search_query(args.query, args.limit)
 
     case _:
         parser.print_help()
