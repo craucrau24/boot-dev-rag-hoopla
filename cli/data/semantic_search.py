@@ -110,3 +110,11 @@ def search_query(query: str, limit: int):
 
   for i, result in enumerate(sem.search(query, limit)):
     print(f"{i + 1}. {result["title"]} (score: {result["score"]: .4f})\n\t{result["description"]}\n")
+
+def embed_query_text(query: str):
+  sem = SemanticSearch()
+  embedding = sem.generate_embedding(query)
+  print(f"Query: {query}")
+  print(f"First 5 dimensions: {embedding[:5]}")
+  print(f"Shape: {embedding.shape}")
+
