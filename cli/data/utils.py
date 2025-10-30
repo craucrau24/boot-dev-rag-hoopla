@@ -1,6 +1,6 @@
 import string
 import os
-from itertools import batched
+from itertools import count, takewhile
 
 from nltk.stem import PorterStemmer
 
@@ -23,12 +23,19 @@ class Tokenizer:
          lambda w: w not in self.stopwords,
          map(self.tokenize_word, new_s.split())))
 
-def get_chunks_from_str(text: str, chunk_size: int) -> list[str]:
+def get_chunks_from_str(text: str, chunk_size: int, overlap: int=0) -> list[str]:
   if chunk_size <= 0:
     raise ValueError(f"Chunk size needs to be strictly positive and non null: (actual {chunk_size})")
+
   words = text.split()
+  offset = chunk_size - overlap
+  if offset <= 0:
+    raise ValueError(f"Overlap must be lower than chunk size: (chunk size {chunk_size}, overlap {overlap})")
+
+  chunks = takewhile(lambda t: t[0] + overlap < len(words), zip(count(0, offset), (count(chunk_size, offset))))
+
   return list(
-     map(lambda t: " ".join(t),
-         batched(words, chunk_size)
+     map(lambda t: " ".join(words[t[0]:t[1]]),
+         chunks
         )
     )

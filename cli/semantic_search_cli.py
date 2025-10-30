@@ -24,6 +24,7 @@ def main():
   chunk_text_parser = subparsers.add_parser("chunk", help="Split input text into chunks")
   chunk_text_parser.add_argument("text", type=str, help="Input text to be split into chunks")
   chunk_text_parser.add_argument("--chunk-size", type=int, default=200, help="The maximum number of words for each chunk")
+  chunk_text_parser.add_argument("--overlap", type=int, default=0, help="Number of words that should overlap over two adjacent chunks")
 
   args = parser.parse_args()
 
@@ -44,7 +45,7 @@ def main():
       embed_query_text(args.query)
 
     case "chunk":
-      chunks = get_chunks_from_str(args.text, args.chunk_size)
+      chunks = get_chunks_from_str(args.text, args.chunk_size, args.overlap)
       print(f"Chunking {len(args.text)} characters")
       for i, chunk in enumerate(chunks):
         print(f"{i + 1}. {chunk}")
