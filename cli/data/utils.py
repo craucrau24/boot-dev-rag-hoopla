@@ -1,5 +1,6 @@
 import string
 import os
+from itertools import batched
 
 from nltk.stem import PorterStemmer
 
@@ -21,3 +22,13 @@ class Tokenizer:
       return list(filter(
          lambda w: w not in self.stopwords,
          map(self.tokenize_word, new_s.split())))
+
+def get_chunks_from_str(text: str, chunk_size: int) -> list[str]:
+  if chunk_size <= 0:
+    raise ValueError(f"Chunk size needs to be strictly positive and non null: (actual {chunk_size})")
+  words = text.split()
+  return list(
+     map(lambda t: " ".join(t),
+         batched(words, chunk_size)
+        )
+    )
