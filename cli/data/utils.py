@@ -1,5 +1,5 @@
 import string
-import os
+import re
 from itertools import count, takewhile
 
 from nltk.stem import PorterStemmer
@@ -36,6 +36,23 @@ def get_chunks_from_str(text: str, chunk_size: int, overlap: int=0) -> list[str]
 
   return list(
      map(lambda t: " ".join(words[t[0]:t[1]]),
+         chunks
+        )
+    )
+
+def get_semantic_chunks_from_str(text: str, chunk_size: int, overlap: int=0) -> list[str]:
+  if chunk_size <= 0:
+    raise ValueError(f"Chunk size needs to be strictly positive and non null: (actual {chunk_size})")
+
+  sentences = re.split(r"(?<=[.!?])\s+", text)
+  offset = chunk_size - overlap
+  if offset <= 0:
+    raise ValueError(f"Overlap must be lower than chunk size: (chunk size {chunk_size}, overlap {overlap})")
+
+  chunks = takewhile(lambda t: t[0] + overlap < len(sentences), zip(count(0, offset), (count(chunk_size, offset))))
+
+  return list(
+     map(lambda t: " ".join(sentences[t[0]:t[1]]),
          chunks
         )
     )
