@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 
 import argparse
+import os
+import json
 
 from data.semantic_search import verify_model, verify_embeddings, embed_text, embed_query_text, search_query
+from data.chunked_semantic_search import ChunkedSemantticSearch
 from data.utils import get_chunks_from_str, get_semantic_chunks_from_str
 
 def main():
@@ -30,6 +33,8 @@ def main():
   semantic_chunk_text_parser.add_argument("text", type=str, help="Input text to be split into chunks")
   semantic_chunk_text_parser.add_argument("--max-chunk-size", type=int, default=200, help="The maximum number of words for each chunk")
   semantic_chunk_text_parser.add_argument("--overlap", type=int, default=0, help="Number of words that should overlap over two adjacent chunks")
+
+  subparsers.add_parser("embed_chunks", help="Split input text into chunks")
 
   args = parser.parse_args()
 
@@ -60,6 +65,13 @@ def main():
       print(f"Semantically chunking {len(args.text)} characters")
       for i, chunk in enumerate(chunks):
         print(f"{i + 1}. {chunk}")
+
+    case "embed_chunks":
+      with open(os.path.join("data", "movies.json")) as f:
+        movies = json.load(f)
+        chunked_semantic = ChunkedSemantticSearch()
+        embeddings = chunked_semantic.load_or_create_chunk_embeddings(movies["movies"])
+        print(f"Generated {len(embeddings)} chunked embeddings")
 
     case _:
         parser.print_help()
