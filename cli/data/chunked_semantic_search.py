@@ -12,7 +12,7 @@ class ChunkedSemantticSearch(SemanticSearch):
     self.chunk_metadata = None
 
   def build_chunk_embeddings(self, documents):
-    self.build_embeddings(documents)
+    # self.build_embeddings(documents)
     
     self.chunk_embeddings = []
     self.chunk_metadata = []
@@ -51,6 +51,6 @@ class ChunkedSemantticSearch(SemanticSearch):
       with open(metadata_cache_name) as f:
         self.chunk_metadata = json.load(f)
       
-      return self.chunk_embeddings()
+      return self.chunk_embeddings
 
     return self.build_chunk_embeddings(documents)
