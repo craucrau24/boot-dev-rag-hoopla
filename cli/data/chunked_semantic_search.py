@@ -29,7 +29,7 @@ class ChunkedSemantticSearch(SemanticSearch):
       for chunk_idx, chunk in enumerate(doc_chunks):
         chunks.append(chunk)
         self.chunk_metadata.append({
-          "movie_idx": doc_idx,
+          "movie_idx": doc["id"],
           "chunk_idx": chunk_idx,
           "total_chunks": len(doc_chunks)
         })
@@ -65,7 +65,7 @@ class ChunkedSemantticSearch(SemanticSearch):
     score_map = {}
     for score in chunk_scores:
       movie_idx = score["movie_idx"]
-      score_map[movie_idx] = max(score_map.setdefault("movie_idx", 0), score["score"])
+      score_map[movie_idx] = max(score_map.setdefault(movie_idx, 0), score["score"])
     
     def format_elt(elt):
       movie = self.document_map[elt[0]]
