@@ -44,7 +44,7 @@ def get_semantic_chunks_from_str(text: str, chunk_size: int, overlap: int=0) -> 
   if chunk_size <= 0:
     raise ValueError(f"Chunk size needs to be strictly positive and non null: (actual {chunk_size})")
 
-  sentences = re.split(r"(?<=[.!?])\s+", text)
+  sentences = re.split(r"(?<=[.!?])\s+", text.strip())
   offset = chunk_size - overlap
   if offset <= 0:
     raise ValueError(f"Overlap must be lower than chunk size: (chunk size {chunk_size}, overlap {overlap})")
