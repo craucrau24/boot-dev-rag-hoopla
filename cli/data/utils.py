@@ -56,3 +56,28 @@ def get_semantic_chunks_from_str(text: str, chunk_size: int, overlap: int=0) -> 
          chunks
         )
     )
+
+def normalize(values: list[float]) -> list[float]:
+  v_min = min(values)
+  v_max = max(values)
+  v_range = v_max - v_min
+  
+  if v_range > 0:
+    func = lambda v: (v - v_min) / v_range
+  else:
+    func = lambda _: 1.0
+
+  return list(map(
+    func,
+    values
+  ))
+
+def normalize_dicts(values: list[dict], key: str) -> list[dict]:
+  norm_scores = normalize(list(map(lambda v: v[key], values)))
+  for sc, v in zip(norm_scores, values):
+    v[key] = sc
+  return values
+
+
+def hybrid_score(bm25_score, semantic_score, alpha=0.5):
+    return alpha * bm25_score + (1 - alpha) * semantic_score

@@ -61,7 +61,8 @@ class SemanticSearch:
         lambda s: {
           "score": s[0],
           "title": s[1]["title"],
-          "description": s[1]["description"]
+          "description": s[1]["description"],
+          "id": s[1]["id"]
         },
         scores[:limit])
       )

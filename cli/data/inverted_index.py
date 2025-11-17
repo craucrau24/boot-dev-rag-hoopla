@@ -12,6 +12,7 @@ class InvertedIndex:
     self.docmap = {}
     self.term_frequencies = {}
     self.doc_lengths = {}
+    self.index_path = os.path.join("cache", "index.pkl")
 
     self.tokenizer = tokenizer
 
@@ -79,8 +80,19 @@ class InvertedIndex:
         scores[id] += self.bm25(id, token)
 
     result = sorted(scores.items(), key=lambda t: t[1], reverse=True)
-    return map(lambda t: (self.docmap[t[0]], t[1]),
-               result[:limit])
+    return list(
+      map(
+        lambda s: {
+          "score": s[1],
+          "title": s[0]["title"],
+          "description": s[0]["description"],
+          "id": s[0]["id"]
+        },
+        map(
+          lambda t: (self.docmap[t[0]], t[1]),
+          result[:limit])
+        )
+      )
 
   def build(self, movies):
     for mov in movies:

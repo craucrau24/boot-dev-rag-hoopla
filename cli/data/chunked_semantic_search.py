@@ -8,14 +8,14 @@ from data.utils import get_semantic_chunks_from_str
 
 SCORE_PRECISION = 4
 
-class ChunkedSemantticSearch(SemanticSearch):
+class ChunkedSemanticSearch(SemanticSearch):
   def __init__(self, model_name="all-MiniLM-L6-v2") -> None:
     super().__init__(model_name)
     self.chunk_embeddings = None
     self.chunk_metadata = None
 
   def build_chunk_embeddings(self, documents):
-    # self.build_embeddings(documents)
+    self.load_or_create_embeddings_embeddings(documents)
     
     self.chunk_embeddings = []
     self.chunk_metadata = []
@@ -82,5 +82,6 @@ class ChunkedSemantticSearch(SemanticSearch):
       format_elt,
       nlargest(limit, score_map.items(), key=lambda elt: elt[1])
     ))
+    print(len(result), limit)
 
     return result

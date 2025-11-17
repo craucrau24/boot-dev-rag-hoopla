@@ -38,7 +38,7 @@ def main():
 
   search_chunked_text_parser = subparsers.add_parser("search_chunked", help="Search document using chunks")
   search_chunked_text_parser.add_argument("query", type=str, help="The query")
-  search_chunked_text_parser.add_argument("--limit", type=int, default=0, help="Maximum number of results")
+  search_chunked_text_parser.add_argument("--limit", type=int, default=5, help="Maximum number of results")
 
   args = parser.parse_args()
 
