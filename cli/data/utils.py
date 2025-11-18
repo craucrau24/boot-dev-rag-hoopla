@@ -81,3 +81,6 @@ def normalize_dicts(values: list[dict], key: str) -> list[dict]:
 
 def hybrid_score(bm25_score, semantic_score, alpha=0.5):
     return alpha * bm25_score + (1 - alpha) * semantic_score
+
+def rrf_score(rank, k=60):
+    return 1 / (k + rank)

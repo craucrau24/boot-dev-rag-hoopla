@@ -3,7 +3,7 @@ from heapq import nlargest
 
 from .inverted_index import InvertedIndex
 from .chunked_semantic_search import ChunkedSemanticSearch
-from .utils import normalize_dicts, hybrid_score
+from .utils import normalize_dicts, hybrid_score, rrf_score
 
 
 class HybridSearch:
@@ -54,4 +54,37 @@ class HybridSearch:
         return result
 
     def rrf_search(self, query, k, limit=10):
-        raise NotImplementedError("RRF hybrid search is not implemented yet.")
+        scores = {}
+        keywords = self._bm25_search(query, limit * 500)
+        semantic = self.semantic_search.search_chunks(query, limit * 500)
+
+        for i, kw in enumerate(keywords):
+            sc = scores.setdefault(kw["id"], {"rrf": 0})
+            rank = i + 1
+            sc["bm25"] = rank
+            sc["rrf"] += rrf_score(rank, k)
+
+        for i, sem in enumerate(semantic):
+            sc = scores.setdefault(sem["id"], {"rrf": 0})
+            rank = i + 1
+            sc["semantic"] = rank
+            sc["rrf"] += rrf_score(rank, k)
+
+        def format_elt(elt):
+            k, v = elt
+            movie = self.semantic_search.document_map[k]
+            return {
+                "id": movie["id"],
+                "title": movie["title"],
+                "document": movie["description"][:100],
+                "rrf_score": v["rrf"],
+                "semantic_rank": v.get("semantic"),
+                "bm25_rank": v.get("bm25"),
+            }
+        
+
+        result = list(map(
+        format_elt,
+        nlargest(limit, scores.items(), key=lambda elt: elt[1]["rrf"])
+        ))
+        return result
