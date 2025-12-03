@@ -1,12 +1,40 @@
 import argparse
 import os
 import json
+import re
+
+from dotenv import load_dotenv
+from google import genai
 
 from data.utils import normalize,Tokenizer
 from data.hybrid_search import HybridSearch
 
+def get_spell_corrected_query(query: str) -> str:
+    api_key = os.environ.get("GEMINI_API_KEY")
+    print(f"Using key {api_key[:6]}...")
+
+
+    client = genai.Client(api_key=api_key)
+    response = client.models.generate_content(
+        model='gemini-2.0-flash-001', contents=f"""Fix any spelling errors in this movie search query.
+
+        Only correct obvious typos. Don't change correctly spelled words.
+
+        Query: "{query}"
+
+        If no errors, return the original query.
+        Corrected:"""
+        )
+
+    m = re.match(r'Corrected:\s*"(.*?)"', response.text)
+    if m is not None:
+        return m.group(1)
+    else:
+        return query
 
 def main() -> None:
+    load_dotenv()
+
     parser = argparse.ArgumentParser(description="Hybrid Search CLI")
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
@@ -22,6 +50,7 @@ def main() -> None:
     rrf_search_parser.add_argument("query", type=str, help="The search query")
     rrf_search_parser.add_argument("--k", type=int, default=60, help="the k parameter used to define the steepness of the curve")
     rrf_search_parser.add_argument("--limit", type=int, default=5, help="maximum number of results")
+    rrf_search_parser.add_argument( "--enhance", type=str, choices=["spell"], help="Query enhancement method")
 
     args = parser.parse_args()
 
@@ -45,7 +74,14 @@ def main() -> None:
             with open(os.path.join("data", "movies.json")) as f:
                 movies = json.load(f)
             hyb = HybridSearch(movies["movies"], tokenizer)
-            results = hyb.rrf_search(args.query, args.k, args.limit)
+            query = args.query
+            if args.enhance == "spell":
+                new_query = get_spell_corrected_query(query)
+                if query != new_query:
+                    print( f"Enhanced query ({args.enhance}): '{query}' -> '{new_query}'\n")
+                    query = new_query
+
+            results = hyb.rrf_search(query, args.k, args.limit)
             for i, r in enumerate(results):
                 bm25_rank = r['bm25_rank'] if r['bm25_rank'] is not None else "N/A"
                 semantic_rank = r['semantic_rank'] if r['semantic_rank'] is not None else "N/A"
