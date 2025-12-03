@@ -32,6 +32,39 @@ def get_spell_corrected_query(query: str) -> str:
     else:
         return query
 
+def get_rewritten_query(query: str) -> str:
+    api_key = os.environ.get("GEMINI_API_KEY")
+    print(f"Using key {api_key[:6]}...")
+
+    client = genai.Client(api_key=api_key)
+    response = client.models.generate_content(
+        model='gemini-2.0-flash-001', contents=f"""Rewrite this movie search query to be more specific and searchable. Enclose result in <query> XML tags.
+
+Original: "{query}"
+
+Consider:
+- Common movie knowledge (famous actors, popular films)
+- Genre conventions (horror = scary, animation = cartoon)
+- Keep it concise (under 10 words)
+- It should be a google style search query that's very specific
+- Don't use boolean logic
+
+Examples:
+
+- "that bear movie where leo gets attacked" -> "The Revenant Leonardo DiCaprio bear attack"
+- "movie about bear in london with marmalade" -> "Paddington London marmalade"
+- "scary movie with bear from few years ago" -> "bear horror movie 2015-2020"
+
+<query>"""        )
+
+    print(response.text)
+    m = re.search(r'"?(.*?)"?\s*</query>', response.text)
+    if m is not None:
+        return m.group(1)
+    else:
+        return query
+
+
 def main() -> None:
     load_dotenv()
 
@@ -50,7 +83,7 @@ def main() -> None:
     rrf_search_parser.add_argument("query", type=str, help="The search query")
     rrf_search_parser.add_argument("--k", type=int, default=60, help="the k parameter used to define the steepness of the curve")
     rrf_search_parser.add_argument("--limit", type=int, default=5, help="maximum number of results")
-    rrf_search_parser.add_argument( "--enhance", type=str, choices=["spell"], help="Query enhancement method")
+    rrf_search_parser.add_argument( "--enhance", type=str, choices=["spell", "rewrite"], help="Query enhancement method")
 
     args = parser.parse_args()
 
@@ -80,6 +113,12 @@ def main() -> None:
                 if query != new_query:
                     print( f"Enhanced query ({args.enhance}): '{query}' -> '{new_query}'\n")
                     query = new_query
+            elif args.enhance == "rewrite":
+                new_query = get_rewritten_query(query)
+                if query != new_query:
+                    print( f"Enhanced query ({args.enhance}): '{query}' -> '{new_query}'\n")
+                    query = new_query
+                    
 
             results = hyb.rrf_search(query, args.k, args.limit)
             for i, r in enumerate(results):
