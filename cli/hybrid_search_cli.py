@@ -64,6 +64,35 @@ Examples:
     else:
         return query
 
+def get_expand_query(query: str) -> str:
+    api_key = os.environ.get("GEMINI_API_KEY")
+    print(f"Using key {api_key[:6]}...")
+
+    client = genai.Client(api_key=api_key)
+    response = client.models.generate_content(
+        model='gemini-2.0-flash-001', contents=f"""Expand this movie search query with related terms.
+
+Add synonyms and related concepts that might appear in movie descriptions.
+Keep expansions relevant and focused.
+This will be appended to the original query.
+
+Examples:
+
+- "scary bear movie" -> "scary horror grizzly bear movie terrifying film"
+- "action movie with bear" -> "action thriller bear chase fight adventure"
+- "comedy with bear" -> "comedy funny bear humor lighthearted"
+ 
+Enclose result in <query> XML tags.
+Query: "{query}"
+<query>""")
+
+    print(response.text)
+    m = re.search(r'"?(.*?)"?\s*</query>', response.text)
+    if m is not None:
+        return m.group(1)
+    else:
+        return query
+
 
 def main() -> None:
     load_dotenv()
@@ -83,7 +112,7 @@ def main() -> None:
     rrf_search_parser.add_argument("query", type=str, help="The search query")
     rrf_search_parser.add_argument("--k", type=int, default=60, help="the k parameter used to define the steepness of the curve")
     rrf_search_parser.add_argument("--limit", type=int, default=5, help="maximum number of results")
-    rrf_search_parser.add_argument( "--enhance", type=str, choices=["spell", "rewrite"], help="Query enhancement method")
+    rrf_search_parser.add_argument( "--enhance", type=str, choices=["spell", "rewrite", "expand"], help="Query enhancement method")
 
     args = parser.parse_args()
 
@@ -115,6 +144,11 @@ def main() -> None:
                     query = new_query
             elif args.enhance == "rewrite":
                 new_query = get_rewritten_query(query)
+                if query != new_query:
+                    print( f"Enhanced query ({args.enhance}): '{query}' -> '{new_query}'\n")
+                    query = new_query
+            elif args.enhance == "expand":
+                new_query = get_expand_query(query)
                 if query != new_query:
                     print( f"Enhanced query ({args.enhance}): '{query}' -> '{new_query}'\n")
                     query = new_query
