@@ -2,6 +2,7 @@ import argparse
 import os
 import json
 import re
+import time
 
 from dotenv import load_dotenv
 from google import genai
@@ -93,6 +94,30 @@ Query: "{query}"
     else:
         return query
 
+def rerank_individual_results(results, query):
+    api_key = os.environ.get("GEMINI_API_KEY")
+    print(f"Using key {api_key[:6]}...")
+
+    client = genai.Client(api_key=api_key)
+    for doc in results:
+        response = client.models.generate_content(
+            model='gemini-2.0-flash-001', contents=f"""Rate how well this movie matches the search query.
+
+Query: "{query}"
+Movie: {doc.get("title", "")} - {doc.get("document", "")}
+
+Consider:
+- Direct relevance to query
+- User intent (what they're looking for)
+- Content appropriateness
+
+Rate 0-10 (10 = perfect match).
+Give me ONLY the number in your response, no other text or explanation.
+
+Score:""")
+        doc["rerank-score"] = float(response.text)
+        print(".", end="")
+        time.sleep(3)
 
 def main() -> None:
     load_dotenv()
@@ -113,6 +138,7 @@ def main() -> None:
     rrf_search_parser.add_argument("--k", type=int, default=60, help="the k parameter used to define the steepness of the curve")
     rrf_search_parser.add_argument("--limit", type=int, default=5, help="maximum number of results")
     rrf_search_parser.add_argument( "--enhance", type=str, choices=["spell", "rewrite", "expand"], help="Query enhancement method")
+    rrf_search_parser.add_argument( "--rerank-method", type=str, choices=["individual"], help="Query enhancement method")
 
     args = parser.parse_args()
 
@@ -137,6 +163,7 @@ def main() -> None:
                 movies = json.load(f)
             hyb = HybridSearch(movies["movies"], tokenizer)
             query = args.query
+            limit = args.limit
             if args.enhance == "spell":
                 new_query = get_spell_corrected_query(query)
                 if query != new_query:
@@ -153,12 +180,27 @@ def main() -> None:
                     print( f"Enhanced query ({args.enhance}): '{query}' -> '{new_query}'\n")
                     query = new_query
                     
+            if args.rerank_method == "individual":
+                print("query:", args.query)
+                limit *= 5
+                print("limit:", args.limit)
+                print("new limit", limit)
 
-            results = hyb.rrf_search(query, args.k, args.limit)
-            for i, r in enumerate(results):
+            results = hyb.rrf_search(query, args.k, limit)
+            if args.rerank_method == "individual":
+                print(f"Reranking top {args.limit} results using individual method...")
+                rerank_individual_results(results, query)
+                results.sort(key=lambda r: r["rerank-score"], reverse=True)
+
+            print(f"Reciprocal Rank Fusion Results for '{query}' (k={args.k}):")
+            for i, r in enumerate(results[:args.limit]):
                 bm25_rank = r['bm25_rank'] if r['bm25_rank'] is not None else "N/A"
                 semantic_rank = r['semantic_rank'] if r['semantic_rank'] is not None else "N/A"
-                print(f"{i + 1}. {r["title"]}\nRRF score: {r["rrf_score"]: .4f}\nBM25 Rank: {bm25_rank} Semantic Rank: {semantic_rank}\n{r["document"]}")
+                rerank_score = r.get("rerank-score")
+                rerank_str = f"Rerank Score: {rerank_score:.3f}\n" if rerank_score is not None else ""
+                print(f"{i + 1}. {r["title"]}\n{rerank_str}RRF score: {r["rrf_score"]: .4f}\nBM25 Rank: {bm25_rank} Semantic Rank: {semantic_rank}\n{r["document"]}")
+
+            
 
         case _:
             parser.print_help()
