@@ -119,6 +119,34 @@ Score:""")
         print(".", end="")
         time.sleep(3)
 
+def rerank_batch_results(results, query, hyb):
+    api_key = os.environ.get("GEMINI_API_KEY")
+    print(f"Using key {api_key[:6]}...")
+
+    doc_list_str = [hyb.get_doc_by_id(r["id"]) for r in results]
+
+    client = genai.Client(api_key=api_key)
+    response = client.models.generate_content(
+            model='gemini-2.0-flash-001', contents=f"""Rank these movies by relevance to the search query.
+
+Query: "{query}"
+
+Movies:
+{doc_list_str}
+
+Return ONLY the IDs in order of relevance (best match first). Return a valid JSON list, nothing else. For example:
+
+[75, 12, 34, 2, 1]
+""")
+    rank_str = "".join(filter(lambda c: c in set("0123456789,[] "), response.text))
+    rank_list = json.loads(rank_str)
+
+    ranks = {_id: r + 1 for r, _id in enumerate(rank_list)}
+    for r in results:
+        r["rerank-score"] = ranks[r["id"]]
+
+
+
 def main() -> None:
     load_dotenv()
 
@@ -138,7 +166,7 @@ def main() -> None:
     rrf_search_parser.add_argument("--k", type=int, default=60, help="the k parameter used to define the steepness of the curve")
     rrf_search_parser.add_argument("--limit", type=int, default=5, help="maximum number of results")
     rrf_search_parser.add_argument( "--enhance", type=str, choices=["spell", "rewrite", "expand"], help="Query enhancement method")
-    rrf_search_parser.add_argument( "--rerank-method", type=str, choices=["individual"], help="Query enhancement method")
+    rrf_search_parser.add_argument( "--rerank-method", type=str, choices=["individual", "batch"], help="Query enhancement method")
 
     args = parser.parse_args()
 
@@ -180,7 +208,7 @@ def main() -> None:
                     print( f"Enhanced query ({args.enhance}): '{query}' -> '{new_query}'\n")
                     query = new_query
                     
-            if args.rerank_method == "individual":
+            if args.rerank_method in ["individual", "batch"]:
                 print("query:", args.query)
                 limit *= 5
                 print("limit:", args.limit)
@@ -191,6 +219,10 @@ def main() -> None:
                 print(f"Reranking top {args.limit} results using individual method...")
                 rerank_individual_results(results, query)
                 results.sort(key=lambda r: r["rerank-score"], reverse=True)
+            elif args.rerank_method == "batch":
+                print(f"Reranking top {args.limit} results using batch method...")
+                rerank_batch_results(results, query, hyb)
+                results.sort(key=lambda r: r["rerank-score"], reverse=False)
 
             print(f"Reciprocal Rank Fusion Results for '{query}' (k={args.k}):")
             for i, r in enumerate(results[:args.limit]):

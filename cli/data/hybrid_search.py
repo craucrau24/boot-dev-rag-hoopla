@@ -17,6 +17,9 @@ class HybridSearch:
             self.idx.build()
             self.idx.save()
 
+    def get_doc_by_id(self, id):
+        return self.idx.docmap.get(id)
+
     def _bm25_search(self, query, limit):
         self.idx.load()
         return self.idx.bm25_search(query, limit)
