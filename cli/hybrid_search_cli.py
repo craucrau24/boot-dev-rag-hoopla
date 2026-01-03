@@ -6,6 +6,7 @@ import time
 
 from dotenv import load_dotenv
 from google import genai
+from sentence_transformers import CrossEncoder
 
 from data.utils import normalize,Tokenizer
 from data.hybrid_search import HybridSearch
@@ -145,7 +146,12 @@ Return ONLY the IDs in order of relevance (best match first). Return a valid JSO
     for r in results:
         r["rerank-score"] = ranks[r["id"]]
 
-
+def rerank_cross_encoder_results(results, query):
+    xcoder = CrossEncoder("cross-encoder/ms-marco-TinyBERT-L2-v2")
+    pairs = [(query, f"{doc.get("title", '')} - {doc.get('document', '')}") for doc in results]
+    scores = xcoder.predict(pairs)
+    for doc, score in zip(results, scores, strict=True):
+        doc["rerank-score"] = score
 
 def main() -> None:
     load_dotenv()
@@ -166,7 +172,7 @@ def main() -> None:
     rrf_search_parser.add_argument("--k", type=int, default=60, help="the k parameter used to define the steepness of the curve")
     rrf_search_parser.add_argument("--limit", type=int, default=5, help="maximum number of results")
     rrf_search_parser.add_argument( "--enhance", type=str, choices=["spell", "rewrite", "expand"], help="Query enhancement method")
-    rrf_search_parser.add_argument( "--rerank-method", type=str, choices=["individual", "batch"], help="Query enhancement method")
+    rrf_search_parser.add_argument( "--rerank-method", type=str, choices=["individual", "batch", "cross_encoder"], help="Query enhancement method")
 
     args = parser.parse_args()
 
@@ -208,7 +214,7 @@ def main() -> None:
                     print( f"Enhanced query ({args.enhance}): '{query}' -> '{new_query}'\n")
                     query = new_query
                     
-            if args.rerank_method in ["individual", "batch"]:
+            if args.rerank_method in ["individual", "batch", "cross_encoder"]:
                 print("query:", args.query)
                 limit *= 5
                 print("limit:", args.limit)
@@ -223,6 +229,9 @@ def main() -> None:
                 print(f"Reranking top {args.limit} results using batch method...")
                 rerank_batch_results(results, query, hyb)
                 results.sort(key=lambda r: r["rerank-score"], reverse=False)
+            elif args.rerank_method == "cross_encoder":
+                rerank_cross_encoder_results(results, query)
+                results.sort(key=lambda r: r["rerank-score"], reverse=True)
 
             print(f"Reciprocal Rank Fusion Results for '{query}' (k={args.k}):")
             for i, r in enumerate(results[:args.limit]):
